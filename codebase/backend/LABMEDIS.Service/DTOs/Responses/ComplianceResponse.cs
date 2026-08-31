@@ -34,6 +34,14 @@ public class LotTraceabilityResponse
 
     public string InternalLotNumber { get; set; } = string.Empty;
 
+    public string SupplierLotNumber { get; set; } = string.Empty;
+
+    public string? SupplierName { get; set; }
+
+    public string? PurchaseOrderNumber { get; set; }
+
+    public string? ShipmentTrackingNumber { get; set; }
+
     public List<CustomerRecallLine> Customers { get; set; } = [];
 }
 

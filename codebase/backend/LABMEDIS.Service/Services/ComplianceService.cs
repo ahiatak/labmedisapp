@@ -47,8 +47,15 @@ public class ComplianceService(AppDbContext context) : RegulatoryAttachmentRepos
 
     public async Task<LotTraceabilityResponse> GetLotTraceabilityAsync(Guid stockLotId, CancellationToken cancellationToken = default)
     {
-        var lot = await Context.Set<StockLot>().FirstOrDefaultAsync(l => l.Id == stockLotId, cancellationToken)
+        var lot = await Context.Set<StockLot>()
+            .Include(l => l.Shipment).ThenInclude(s => s!.Lines).ThenInclude(sl => sl.PurchaseOrderLine).ThenInclude(pol => pol!.PurchaseOrder).ThenInclude(po => po!.Supplier)
+            .FirstOrDefaultAsync(l => l.Id == stockLotId, cancellationToken)
             ?? throw new AppException(404, "STOCK_LOT_NOT_FOUND", "Lot introuvable.");
+
+        var shipment = lot.Shipment;
+        var poLine = shipment?.Lines.FirstOrDefault()?.PurchaseOrderLine;
+        var purchaseOrder = poLine?.PurchaseOrder;
+        var supplier = purchaseOrder?.Supplier;
 
         var customers = await GetCustomersByLotAsync(stockLotId, cancellationToken);
 
@@ -56,6 +63,10 @@ public class ComplianceService(AppDbContext context) : RegulatoryAttachmentRepos
         {
             StockLotId = stockLotId,
             InternalLotNumber = lot.InternalLotNumber,
+            SupplierLotNumber = lot.SupplierLotNumber,
+            SupplierName = supplier?.Name,
+            PurchaseOrderNumber = purchaseOrder?.OrderNumber,
+            ShipmentTrackingNumber = shipment?.TrackingNumber,
             Customers = customers.Select(c => new CustomerRecallLine(c)).ToList()
         };
     }

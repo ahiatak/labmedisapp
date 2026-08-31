@@ -7,7 +7,7 @@ namespace LABMEDIS.Core.Repositories.Customer;
 public class CustomerRepository(AppDbContext context) : BaseRepository<CustomerEntity>(context), ICustomerRepository
 {
     public Task<bool> NameExistsAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default) =>
-        DbSet.AnyAsync(c => c.Name == name && (excludeId == null || c.Id != excludeId), cancellationToken);
+        DbSet.AnyAsync(c => c.IsActive && c.Name == name && (excludeId == null || c.Id != excludeId), cancellationToken);
 
     public Task<CustomerEntity?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default) =>
         DbSet.Include(c => c.NegotiatedPrices).FirstOrDefaultAsync(c => c.Id == id, cancellationToken);

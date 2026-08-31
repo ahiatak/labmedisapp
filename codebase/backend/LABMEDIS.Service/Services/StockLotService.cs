@@ -205,6 +205,11 @@ public class StockLotService(AppDbContext context, INotificationService notifica
             throw new AppException(422, "LOT_NOT_RELEASED", "Seul un lot au statut Libéré peut être vendu/alloué.");
         }
 
+        if (lot.ExpiryDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            throw new AppException(422, "LOT_EXPIRED", "Ce lot est périmé et ne peut pas être réservé ou vendu (FR-037).");
+        }
+
         if (lot.AvailableQuantity < quantity)
         {
             throw new AppException(409, "INSUFFICIENT_STOCK", "Quantité disponible insuffisante sur ce lot (réservation concurrente probable).");
@@ -239,7 +244,7 @@ public class StockLotService(AppDbContext context, INotificationService notifica
             throw new AppException(400, "LOT_NUMBER_REQUIRED", "Le numéro de lot est obligatoire (FR-029).");
         }
 
-        if (await SupplierLotNumberExistsAsync(Guid.Empty, line.ProductId, request.LotNumber, cancellationToken))
+        if (await SupplierLotNumberExistsAsync(line.PurchaseOrder!.SupplierId, line.ProductId, request.LotNumber, cancellationToken))
         {
             throw new AppException(409, "SUPPLIER_LOT_NUMBER_DUPLICATE", "Ce numéro de lot fournisseur est déjà utilisé pour ce produit.");
         }
@@ -433,7 +438,7 @@ public class StockLotService(AppDbContext context, INotificationService notifica
         {
             if (lot.ExpiryDate < today)
             {
-                if (lot.QualityStatus == QualityStatus.Libere)
+                if (lot.QualityStatus != QualityStatus.Perime && lot.QualityStatus != QualityStatus.Detruit)
                 {
                     lot.QualityStatus = QualityStatus.Perime;
                     await UpdateAsync(lot, cancellationToken);

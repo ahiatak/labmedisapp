@@ -10,12 +10,15 @@ public class InvoiceRepository(AppDbContext context) : BaseRepository<InvoiceEnt
     public Task<InvoiceEntity?> GetByIdWithLinesAsync(Guid id, CancellationToken cancellationToken = default) =>
         DbSet
             .Include(i => i.Customer)
+            .Include(i => i.Currency)
             .Include(i => i.Lines).ThenInclude(l => l.Product)
             .Include(i => i.Lines).ThenInclude(l => l.StockLot)
             .FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
     public Task<InvoiceEntity?> GetBySaleOrderIdAsync(Guid saleOrderId, CancellationToken cancellationToken = default) =>
         DbSet
+            .Include(i => i.Customer)
+            .Include(i => i.Currency)
             .Include(i => i.Lines).ThenInclude(l => l.Product)
             .Include(i => i.Lines).ThenInclude(l => l.StockLot)
             .FirstOrDefaultAsync(i => i.SaleOrderId == saleOrderId, cancellationToken);

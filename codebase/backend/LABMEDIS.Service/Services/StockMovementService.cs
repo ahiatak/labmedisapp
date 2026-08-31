@@ -41,7 +41,31 @@ public class StockMovementService(AppDbContext context) : StockMovementRepositor
                 lot.RemainingQuantity -= request.Quantity;
                 break;
             case StockMovementTypeEntity.Transfert:
-                // Physical relocation only — RemainingQuantity is unchanged, Source/DestinationLocationId trace the move.
+                if (request.SourceLocationId.HasValue && request.DestinationLocationId.HasValue)
+                {
+                    var sourceLoc = await Context.Set<StockLotLocation>()
+                        .FirstOrDefaultAsync(l => l.StockLotId == lot.Id && l.StorageLocationId == request.SourceLocationId.Value, cancellationToken);
+                    if (sourceLoc != null)
+                    {
+                        sourceLoc.Quantity = Math.Max(0, sourceLoc.Quantity - request.Quantity);
+                    }
+
+                    var destLoc = await Context.Set<StockLotLocation>()
+                        .FirstOrDefaultAsync(l => l.StockLotId == lot.Id && l.StorageLocationId == request.DestinationLocationId.Value, cancellationToken);
+                    if (destLoc != null)
+                    {
+                        destLoc.Quantity += request.Quantity;
+                    }
+                    else
+                    {
+                        await Context.Set<StockLotLocation>().AddAsync(new StockLotLocation
+                        {
+                            StockLotId = lot.Id,
+                            StorageLocationId = request.DestinationLocationId.Value,
+                            Quantity = request.Quantity
+                        }, cancellationToken);
+                    }
+                }
                 break;
         }
 

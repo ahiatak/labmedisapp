@@ -7,7 +7,7 @@ namespace LABMEDIS.Core.Repositories.Supplier;
 public class SupplierRepository(AppDbContext context) : BaseRepository<SupplierEntity>(context), ISupplierRepository
 {
     public Task<bool> NameExistsAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default) =>
-        DbSet.AnyAsync(s => s.Name == name && (excludeId == null || s.Id != excludeId), cancellationToken);
+        DbSet.AnyAsync(s => s.IsActive && s.Name == name && (excludeId == null || s.Id != excludeId), cancellationToken);
 
     public Task<SupplierEntity?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default) =>
         DbSet.Include(s => s.DefaultCurrency).FirstOrDefaultAsync(s => s.Id == id, cancellationToken);

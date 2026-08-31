@@ -90,6 +90,9 @@ public class ProductService(AppDbContext context) : ProductRepository(context), 
         response.TotalRows = rows.Count;
 
         var categories = await Context.Set<Category>().ToDictionaryAsync(c => c.Name.Trim().ToLowerInvariant(), c => c.Id, cancellationToken);
+        var existingDesignations = new HashSet<string>(
+            await Context.Set<Product>().Where(p => p.IsActive).Select(p => p.Designation).ToListAsync(cancellationToken),
+            StringComparer.OrdinalIgnoreCase);
         var toInsert = new List<Product>();
 
         foreach (var row in rows)
@@ -112,11 +115,12 @@ public class ProductService(AppDbContext context) : ProductRepository(context), 
                     throw new InvalidOperationException($"Catégorie inconnue : '{categoryName}'.");
                 }
 
-                if (await DesignationExistsAsync(designation, cancellationToken: cancellationToken)
-                    || toInsert.Any(p => p.Designation == designation))
+                if (existingDesignations.Contains(designation) || toInsert.Any(p => string.Equals(p.Designation, designation, StringComparison.OrdinalIgnoreCase)))
                 {
                     throw new InvalidOperationException($"Désignation en doublon : '{designation}'.");
                 }
+
+                existingDesignations.Add(designation);
 
                 toInsert.Add(new Product
                 {

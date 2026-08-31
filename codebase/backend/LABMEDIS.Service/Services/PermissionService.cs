@@ -21,7 +21,7 @@ public class PermissionService(AppDbContext context) : PermissionRepository(cont
     {
         var roleNameList = roleNames.ToList();
         var roleIds = await Context.Set<ApplicationRole>()
-            .Where(r => roleNameList.Contains(r.Name))
+            .Where(r => r.Name != null && roleNameList.Contains(r.Name))
             .Select(r => r.Id)
             .ToListAsync(cancellationToken);
 

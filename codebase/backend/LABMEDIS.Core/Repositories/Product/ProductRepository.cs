@@ -7,10 +7,10 @@ namespace LABMEDIS.Core.Repositories.Product;
 public class ProductRepository(AppDbContext context) : BaseRepository<ProductEntity>(context), IProductRepository
 {
     public Task<bool> DesignationExistsAsync(string designation, Guid? excludeId = null, CancellationToken cancellationToken = default) =>
-        DbSet.AnyAsync(p => p.Designation == designation && (excludeId == null || p.Id != excludeId), cancellationToken);
+        DbSet.AnyAsync(p => p.IsActive && p.Designation == designation && (excludeId == null || p.Id != excludeId), cancellationToken);
 
     public Task<bool> CodeCipExistsAsync(string codeCip, Guid? excludeId = null, CancellationToken cancellationToken = default) =>
-        DbSet.AnyAsync(p => p.CodeCip == codeCip && (excludeId == null || p.Id != excludeId), cancellationToken);
+        DbSet.AnyAsync(p => p.IsActive && p.CodeCip == codeCip && (excludeId == null || p.Id != excludeId), cancellationToken);
 
     public Task<ProductEntity?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default) =>
         DbSet

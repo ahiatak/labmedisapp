@@ -79,6 +79,29 @@ public class InventorySessionService(AppDbContext context, IStockMovementService
         return new InventoryCountResponse(count);
     }
 
+    public async Task<InventorySessionResponse> RequestRecountAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        var session = await GetByIdWithCountsAsync(sessionId, cancellationToken)
+            ?? throw new AppException(404, "INVENTORY_SESSION_NOT_FOUND", "Session d'inventaire introuvable.");
+
+        if (session.Status != InventorySessionStatus.EnComptage)
+        {
+            throw new AppException(400, "INVALID_TRANSITION", "Une demande de recomptage n'est possible que sur une session en comptage.");
+        }
+
+        foreach (var count in session.Counts)
+        {
+            count.CountedQuantity = null;
+            Context.Set<InventoryCountEntity>().Update(count);
+        }
+
+        session.Status = InventorySessionStatus.Gelee;
+        await UpdateAsync(session, cancellationToken);
+        await Context.SaveChangesAsync(cancellationToken);
+
+        return new InventorySessionResponse(session);
+    }
+
     public async Task<InventorySessionResponse> ValidateAsync(Guid sessionId, Guid userId, ValidateInventorySessionRequest request, CancellationToken cancellationToken = default)
     {
         var session = await GetByIdWithCountsAsync(sessionId, cancellationToken)

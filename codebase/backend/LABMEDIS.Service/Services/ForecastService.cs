@@ -160,6 +160,16 @@ public class ForecastService(AppDbContext context, IStockLotService stockLotServ
 
             var available = await stockLotService.GetAvailableAsync(product.Id, cancellationToken);
 
+            var inTransitQty = await Context.Set<PurchaseOrderLine>()
+                .Where(l => l.ProductId == product.Id &&
+                       l.PurchaseOrder!.Status != PurchaseOrderStatus.Brouillon &&
+                       l.PurchaseOrder.Status != PurchaseOrderStatus.Annulee &&
+                       l.PurchaseOrder.Status != PurchaseOrderStatus.Close &&
+                       l.PurchaseOrder.Status != PurchaseOrderStatus.Reçue)
+                .SumAsync(l => (int?)(l.Quantity - l.QuantityReceived), cancellationToken) ?? 0;
+
+            var totalProjected = available.TotalAvailable + inTransitQty;
+
             var result = ReorderPointCalculator.Calculate(avgDailyConsumption, manufactureDays, transportDays, parameters?.SafetyStockDays ?? 0, available.TotalAvailable);
 
             Context.Set<ForecastCalculation>().Add(new ForecastCalculation
@@ -172,16 +182,16 @@ public class ForecastService(AppDbContext context, IStockLotService stockLotServ
                 Status = (ForecastStatus)result.Status
             });
 
-            // FR-064 — a suggestion is created once available stock drops below the reorder
+            // FR-064 — a suggestion is created once available stock + in-transit drops below the reorder
             // point, and only if one is not already pending for this product.
-            if (available.TotalAvailable < result.ReorderPoint)
+            if (totalProjected < result.ReorderPoint)
             {
                 var hasPending = await Context.Set<ReorderSuggestionEntity>()
                     .AnyAsync(s => s.ProductId == product.Id && s.Status == ReorderSuggestionStatus.EnAttente, cancellationToken);
 
                 if (!hasPending)
                 {
-                    var suggestedQuantity = (int)Math.Ceiling(result.ReorderPoint - available.TotalAvailable);
+                    var suggestedQuantity = (int)Math.Ceiling(result.ReorderPoint - totalProjected);
                     var suggestion = new ReorderSuggestionEntity
                     {
                         ProductId = product.Id,

@@ -35,5 +35,7 @@ public class Invoice : BaseEntity
 
     public Customer? Customer { get; set; }
 
+    public Currency? Currency { get; set; }
+
     public List<InvoiceLine> Lines { get; set; } = [];
 }

@@ -356,6 +356,28 @@ public class StockController(
         }
     }
 
+    [HttpPost("inventory-sessions/{id:guid}/recount")]
+    [Authorize(Policy = "Inventory.Manage")]
+    public async Task<IActionResult> RequestRecount(Guid id, CancellationToken cancellationToken)
+    {
+        var currentUser = await userService.GetCurrentUserAsync(User, cancellationToken);
+        logger.LogInfo(HttpContext.BuildStartLog(currentUser, nameof(RequestRecount)));
+        try
+        {
+            return Ok(await inventorySessionService.RequestRecountAsync(id, cancellationToken));
+        }
+        catch (AppException ex)
+        {
+            logger.LogError(ex, HttpContext.BuildErrorLog(currentUser, nameof(RequestRecount), ex.Message));
+            return StatusCode(ex.StatusCode, new { message = ex.Message, code = ex.ErrorCode });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, HttpContext.BuildErrorLog(currentUser, nameof(RequestRecount), ex.Message));
+            return BadRequest(new { message = "Impossible de demander un recomptage pour cette session." });
+        }
+    }
+
     /// <summary>
     /// Financial masking (constitution §Sécurité): a lot's PRU (UnitCostCfa) is purchase-cost
     /// data, not operational stock data — warehouse-only roles (Magasinier, Préparateur,

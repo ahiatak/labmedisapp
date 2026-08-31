@@ -40,6 +40,10 @@ public class InvoicePdfService(IConverter converter, IInvoiceRepository invoiceR
     private static string BuildHtml(Core.Models.Entities.Invoice invoice)
     {
         var culture = CultureInfo.GetCultureInfo("fr-FR");
+        var isEur = string.Equals(invoice.Currency?.Code, "EUR", StringComparison.OrdinalIgnoreCase);
+        var currencyCode = isEur ? "EUR" : "XOF";
+        var numFormat = isEur ? "N2" : "N0";
+
         var rows = new StringBuilder();
         foreach (var line in invoice.Lines)
         {
@@ -48,7 +52,7 @@ public class InvoicePdfService(IConverter converter, IInvoiceRepository invoiceR
                   <td>{line.Product?.Designation}</td>
                   <td><strong>{line.StockLot?.InternalLotNumber}</strong></td>
                   <td>{line.Quantity}</td>
-                  <td>{line.UnitPriceHt.ToString("N0", culture)} XOF</td>
+                  <td>{line.UnitPriceHt.ToString(numFormat, culture)} {currencyCode}</td>
                 </tr>
                 """);
         }
@@ -63,7 +67,7 @@ public class InvoicePdfService(IConverter converter, IInvoiceRepository invoiceR
                 <thead><tr><th>Produit</th><th>N° Lot</th><th>Quantité</th><th>Prix unitaire HT</th></tr></thead>
                 <tbody>{rows}</tbody>
               </table>
-              <h3>Total TTC : {invoice.TotalTtc.ToString("N0", culture)} XOF</h3>
+              <h3>Total TTC : {invoice.TotalTtc.ToString(numFormat, culture)} {currencyCode}</h3>
             </body></html>
             """;
     }
